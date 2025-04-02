@@ -5,8 +5,8 @@
 # fastaq sample generation and protocol can see in Main manuscript.
 # repeat this code for each sample 
 # Below is the real code to run simple pipeline, all depends on the capacity of cluster. It may take time to run pipelines 
-
-
+# If everything is good then you can expect /Sample_1/outs/raw_feature_bc_matrix files in the format matrix, barcodes and cell IDs can use further downstream analysis. 
+# or else you can also use raw_feature_bc_matrix.h5 file directly where all information at one place to use. 
 
 #!/bin/bash
 #SBATCH --job-name=cellranger-job
