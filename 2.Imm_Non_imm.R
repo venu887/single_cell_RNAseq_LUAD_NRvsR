@@ -57,7 +57,7 @@ integrated_data <- FindClusters(integrated_data, resolution =1)
 integrated_data <- RunUMAP(integrated_data, dims = 1:49)
 
 
-#@@@@@@@@@@@@@  Supplementary Figure (SF1):
+#@@@@@@@@@@@@@@@@@@  Supplementary Figure (SF1) @@@@@@@@@@@@@@@@@@@@@@@@@@
 gList = c("PTPRC",    #CD45 for immune
           "CD3D",     #T_cells
           "CD79A",    #B and plasma
@@ -68,7 +68,7 @@ gList = c("PTPRC",    #CD45 for immune
 Plot1<- FeaturePlot(integrated_data, features = gList)
 # Save figure
 
-#@@@@@@@@@@@@@  Supplementary Figure (SF2A):
+#@@@@@@@@@@@@@@@@@  Supplementary Figure (SF2A) @@@@@@@@@@@@@@@@@@@@@@@@@@
 Plot_2<-DimPlot(integrated_data, reduction = "umap", label = T)
 # Save figure
 
@@ -149,7 +149,7 @@ finAnnot <- c("/mount/ictr1/chenglab/venu/scRNAseq_lung/cellranger_scran/NSCLC_o
 tmp <- read.delim(finAnnot,sep="\t",head=T, stringsAsFactors=FALSE)
 # OR 
 tmp<-Ftab_out
-cellID_vec <- tmp$cluster_type_category 
+cellID_vec <- tmp$cluster_type_category # broad_classification replace the classification 
 num<-length(cellID_vec)
 numbers <- seq(0, (num-1))
 names(cellID_vec) <- numbers
@@ -174,7 +174,7 @@ table(integrated_data2@meta.data$integrated_snn_res.1, integrated_data2@meta.dat
 integrated_data2@meta.data$Cell_type1 <- paste0(integrated_data2@meta.data$integrated_snn_res.1,"_",integrated_data2@meta.data$cellIDAll)
 
 
-#@@@@@@@@@@@@@  Supplementary Figure (SF2B):
+#@@@@@@@@@@@@@@@@@@@@  Supplementary Figure (SF2B) @@@@@@@@@@@@@@@@@@@@@@@@@@
 # https://divingintogeneticsandgenomics.com/post/how-to-make-a-multi-group-dotplot-for-single-cell-rnaseq-data/ 
 #install.packages("scCustomize")
 library(scCustomize)
@@ -186,17 +186,22 @@ scCustomize::Clustered_DotPlot(integrated_data2, features = gList, group.by = "C
                                plot_km_elbow = FALSE)
 dev.off()
 
-#@@@@@@@@@@@@@  Supplementary Figure (SF2C):
-Plot_3<-DimPlot(integrated_data2, reduction = "umap", group.by = "cellIDAll", label = T)+NoLegend()+ 
+#@@@@@@@@@@@@@@@@@@@@@ Figure 2B @@@@@@@@@@@@@@@@@@@@@@@@@@
+p1<-DimPlot(integrated_data2, reduction = "umap", group.by = "cellIDAll", label = T)+NoLegend()+ 
+  ggtitle("")  
+p1
+
+#@@@@@@@@@@@@@@@@@@@ Supplementary Figure (SF2C) @@@@@@@@@@@@@@@@@@@@@@@@@@
+Plot_3<-DimPlot(integrated_data2, reduction = "umap", group.by = "broad_classification", label = T)+NoLegend()+ 
   ggtitle("")  
 # Save plot
 
-#@@@@@@@@@@@@@  Supplementary Figure (SF2D):
+#@@@@@@@@@@@@@@@@@  Supplementary Figure (SF2D) @@@@@@@@@@@@@@@@@@@@@@@@@@
 Plot_3<-DimPlot(integrated_data2, reduction = "umap", group.by = "Cell_type1", label = T)+NoLegend()+ 
   ggtitle("")  
 # Save plot
 
-#@@@@@@@@@@@@@  Supplementary Figure (SF2F):
+#@@@@@@@@@@@@@@@@@  Supplementary Figure (SF2F) @@@@@@@@@@@@@@@@@@@@@@@@@@
 p3<-DimPlot(integrated_data2, reduction = "umap", group.by = "cellIDAll", split.by = "sample_type", label = T)+ggtitle("Batch wise samples: Non-Recurrence and Recurrence")+NoLegend()
 p4<-DimPlot(integrated_data2, reduction = "umap", group.by = "cellIDAll", split.by = "sample", ncol = 4,label = F)+ggtitle("Individual samples")+NoLegend()
 combined_plot<-p3 |p4
