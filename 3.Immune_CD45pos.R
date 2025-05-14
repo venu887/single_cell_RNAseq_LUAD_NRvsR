@@ -253,4 +253,168 @@ saveRDS(DC,file=c("Immune_cells_data/DC_cells.rds"))
 
 # Bingo with immune cell type assessment
 
-#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@. OTHER PLOTS CODE: can find in 3.1.Sub_clust_anno.R
+#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@. OTHER PLOTS CODE 
+#@@@@@@@@@@@@@@@@@@@@@@ Method-1 FDR and Fisher p-value, calculating the proportion with fisher extract test between recurrence vs non-recurrence samples
+# Fold change calculations in each individual clusters
+# calculate total cells in Non-Rec and Rec samples
+# count the number of cells present in each cluster
+# Divide the total cells  by specific cluster types to get proportion 
+# Divide the proportion of Non-Rec with Rec will give us Fold Change
+library(SingleCellExperiment)
+library(Seurat)
+library(dplyr) 
+library(ggplot2)
+library(NMF)
+library(reshape2)
+library(limma)
+library(speckle)
+library(speckle)
+library(knitr)
+library(tidyr)
+library(ggpubr)
+library(ggrepel)
+library(stringr)
+file=c("/mount/ictr1/chenglab/venu/scRNAseq_lung/cellranger_scran/Immune_cells_data/cd45pos_nsclc_Immune_cells.rds")
+cd45pos<-readRDS(file)
+cd45pos
+
+#@@@@@@@@@@@@@@@@@@@@@@@@@@ Supplementary Figure 2C @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+# proportion plots of each samples in each immune cell type
+#@@@@@@@@@@@@@@@@@@@@@@@@@@ 
+names(cd45pos@meta.data)
+cont_table <- table(cd45pos$Cell_type1, cd45pos$sample) # prop1: sample and prop2: sample_type
+cont_df <- as.data.frame(cont_table)
+colnames(cont_df) <- c("Cell_type", "Sample", "Count")
+
+contingency_df <- cont_df %>%
+  group_by(Cell_type) %>%
+  mutate(Proportion = Count / sum(Count))
+xx<-c("Plasma cells_C12", "B cells_C2","CD4_C10", "GaDelT_C14", "B cells_C13",
+      "CD8_C1", "NK cells_C4", "CD4_C6", "pDC_C19", "CD4_C7", "CD8_C0", "Plasma cells_C9",
+      "Mast_C17", "CD8_C15", "Mono_C3", "Neutrophil_C5","DC_C18","Mac_C8", "Prolifirating Mac_C16",
+      "Mac|DC_C11", "Prolif Mac|DC_C20")
+# Reverse the order of 'xx' and set it as levels for 'Cell_type'
+contingency_df$Cell_type <- factor(contingency_df$Cell_type, levels = rev(xx))
+
+# Create the plot with the reversed x-axis order
+plot_prapo <- ggplot(contingency_df, aes(x = Cell_type, y = Proportion, fill = Sample)) +
+  geom_bar(stat = "identity", position = "fill") +
+  labs(x = NULL, y = "Proportion", fill = "Cell_type") +
+  theme_classic() + 
+  theme(axis.text.x = element_text(colour = "black", angle = 0, vjust = 1, hjust = 0.5),
+        axis.text.y = element_text(color = "black")) +
+  coord_flip()
+# Save the plot
+
+# Generate final_data for calculation of proportion for each cell type in group wise
+final_data <- cd45pos@meta.data %>%
+  count(Cell_type1, sample, name = "Freq") %>%
+  pivot_wider(names_from = sample, values_from = Freq, values_fill = 0) %>%
+  # Calculate proportions
+  mutate(across(-Cell_type1, ~ .x / sum(.x), .names = "Prop_{col}")) %>%
+  # Calculate mean proportions for R and NR groups
+  rowwise() %>%
+  mutate(
+    Mean_R_prop = mean(c_across(starts_with("Prop_LC") & ends_with("_R")), na.rm = TRUE),
+    Mean_NR_prop = mean(c_across(starts_with("Prop_LC") & ends_with("_NR")), na.rm = TRUE),
+    FC_mean_prop = ifelse(Mean_NR_prop > 0, Mean_R_prop / Mean_NR_prop, NA),
+    Enriched_in = case_when(
+      FC_mean_prop > 1 ~ "R",
+      FC_mean_prop < 1 ~ "NR",
+      TRUE ~ "None"
+    ),
+    R_sum_prop = sum(c_across(starts_with("Prop_LC") & ends_with("_R")), na.rm = TRUE),
+    NR_sum_prop = sum(c_across(starts_with("Prop_LC") & ends_with("_NR")), na.rm = TRUE),
+    FC_sum = ifelse(NR_sum_prop > 0, R_sum_prop / NR_sum_prop, NA),
+    Enriched_in_sum = case_when(
+      FC_sum > 1 ~ "R",
+      FC_sum < 1 ~ "NR",
+      TRUE ~ "None"
+    )
+  ) %>%
+  # Summarize counts for R and NR
+  mutate(
+    R_sum = sum(c_across(starts_with("LC") & ends_with("_R")), na.rm = TRUE),
+    NR_sum = sum(c_across(starts_with("LC") & ends_with("_NR")), na.rm = TRUE)
+  ) %>%
+  ungroup()
+
+# Calculate total counts for R and NR groups
+total_R <- sum(final_data$R_sum, na.rm = TRUE)
+total_NR <- sum(final_data$NR_sum, na.rm = TRUE)
+
+# Step 2: Perform Fisher's Exact Test for each cell type
+final_data <- final_data %>%
+  rowwise() %>%
+  mutate(
+    Fisher_p_value = fisher.test(matrix(
+      c(R_sum, NR_sum, total_R - R_sum, total_NR - NR_sum), 
+      nrow = 2
+    ))$p.value,
+    Significant = Fisher_p_value < 0.05 & abs(log2(FC_mean_prop)) > 1
+  ) %>%
+  ungroup()
+
+final_data <- final_data %>%
+  rowwise() %>%
+  mutate(
+    Fisher_p_value = fisher.test(matrix(
+      c(R_sum, NR_sum, total_R - R_sum, total_NR - NR_sum), 
+      nrow = 2
+    ))$p.value,
+    Significant = Fisher_p_value < 0.05 & abs(log2(FC_mean_prop)) > 1
+  ) %>%
+  ungroup()
+# Adjust p-values using BH method
+final_data$Fisher_p_value_adj <- p.adjust(final_data$Fisher_p_value, method = "BH")
+final_data$Significant_adj <- final_data$Fisher_p_value_adj < 0.05 & abs(log2(final_data$FC_mean_prop)) > 1
+fin1 <- c("Immune_cells_data/Immune_Cells_FC_P_val.csv")
+write.csv(final_data, fin1)
+
+
+#@@@@@@@@@@@@@@@@@@@@@@@@@@ Supplementary Figure 2E @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+names(final_data)
+final_data1<-final_data
+xx<-c("Prop_LC104_R", "Prop_LC115_NR","Prop_LC221_NR", "Prop_LC38_NR", "Prop_LC52_R", "Prop_LC63_NR", "Prop_LC71_R")
+proportions <- final_data1[,xx]
+proportions$Cluster <- final_data1$Cell_type1
+long_data <- melt(proportions)
+colnames(long_data) <- c("Cluster", "Sample", "Proportion")
+long_data$Group <- ifelse(grepl("_R$", long_data$Sample), "R", "NR")
+# Merge Fisher's p-values with long_data for annotation
+long_data <- left_join(long_data, final_data %>% select(Cell_type1, Fisher_p_value_adj), 
+                       by = c("Cluster" = "Cell_type1"))
+
+# Format Fisher’s p-values for display
+long_data <- long_data %>%
+  mutate(Fisher_label = case_when(
+    Fisher_p_value_adj < 0.001 ~ "***",
+    Fisher_p_value_adj < 0.01  ~ "**",
+    Fisher_p_value_adj < 0.05  ~ "*",
+    TRUE ~ "ns"
+  ))
+
+pdf("Imm_Prop_boxplot.pdf", width = 10, height = 11)
+ggplot(long_data, aes(x = Group, y = Proportion, color = Group)) +
+  geom_boxplot(outlier.shape = NA, alpha = 0.5) +  
+  geom_jitter(width = 0.2, size = 2, alpha = 0.7) + 
+  scale_color_manual(values = c("R" = "darkorange", "NR" = "purple")) +
+  facet_wrap(~ Cluster, scales = "free_y", ncol = 4) +
+  geom_text(data = distinct(long_data, Cluster, Fisher_label), 
+            aes(x = 1.5, y = max(long_data$Proportion, na.rm = TRUE) * 0.1, 
+                label = Fisher_label), 
+            inherit.aes = FALSE, size = 5) +  
+  theme_minimal() +
+  theme(
+    text = element_text(size = 14),
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 14),
+    strip.text = element_text(size = 10, face = "bold"),
+    legend.position = "none"
+  ) +
+  labs(x = "Group", y = "Proportion", title = "Immune Proportions Across Clusters (Fisher extract)")
+dev.off()
+
+
+
+
