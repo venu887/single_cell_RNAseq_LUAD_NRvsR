@@ -7,19 +7,18 @@ library(DoubletFinder)
 library(ggplot2)
 library(dplyr)
 
-
-source("/mount/ictr1/chenglab/venu/scRNAseq_lung/cellranger_scran/NSCLC_output/source_fxns4seurat.R")
+#Download this file from paper :10.1158/0008-5472.CAN-23-0128
+#Single-Cell Characterization of Pulmonary Nodules Implicates Suppression of Immunosurveillance across Early Stages of Lung Adenocarcinoma 
+source("source_fxns4seurat.R") 
 
 ##@@@@@@@@@@@@@@@@@@@@@@@@@@ Step-1:  Panglo data
-inp<-"/mount/ictr1/chenglab/venu/scRNAseq_lung/cellranger_scran/NSCLC_output/"
+inp<-"cellranger_scran/NSCLC_output/"
 fin_db1 <- paste(inp,"PanglaoDB_markers_27_Mar_2020.tsv",sep="")
 panglao <- read.delim(fin_db1,sep="\t",stringsAsFactors=FALSE)
 listOrgan = c("Lungs","Immune system","Epithelium",
               "Connective tissue","Vasculature")
 panglao = panglao[is.element(panglao$organ,listOrgan),]
-
 unique(panglao$cell.type)
-
 listSelCT = c("T cells","B cells","NK cells","Plasma cells", 
               "Dendritic cells",
               "Macrophages","Alveolar macrophages",
@@ -37,15 +36,13 @@ tmpsel  = grepl("Hs",panglao$species) &
   is.element(panglao$cell.type,listSelCT)
 db_sub = panglao[tmpsel,2:3]
 colnames(db_sub)=c("Symbol","cellType")
-unique(db_sub$cellType)
  
 ##@@@@@@@@@@@@@@@@@@@@@@@@@@ Step-2 Export all data 
 fout2 <- c("/mount/ictr1/chenglab/venu/scRNAseq_lung/cellranger_scran/NSCLC_output/data1_integrated_ndim100.rds")
 integrated_data<- readRDS(fout2)
-
 integrated_data <- ScaleData(integrated_data, verbose = FALSE)
 integrated_data <- RunPCA(integrated_data, npcs = 100, verbose = FALSE)
-integrated_data <- FindNeighbors(integrated_data, dims = 1:50) # 20 good
+integrated_data <- FindNeighbors(integrated_data, dims = 1:50) 
 
 ElbowPlot(integrated_data)
 # Find optimal resolution
@@ -54,16 +51,14 @@ ElbowPlot(integrated_data)
 # n.dims <- 20
 # combined <- FindClusters(integrated_data, reduction.type = "cca.aligned",
 #                          dims.use = 1:n.dims, resolution = resolutions)
-# 
 # clustree(combined)
 # rm(combined)
-
-
 integrated_data <- FindClusters(integrated_data, resolution =1)
 integrated_data <- RunUMAP(integrated_data, dims = 1:49)
+
+# PLOT-1A
 p1<-DimPlot(integrated_data, reduction = "umap", label = T)
-p1
-pdf("/home/u251079/scRNA/Lung_scRNA/2_Raw_UMAP.pdf", width = 6, height =5)
+pdf("2_Raw_UMAP.pdf", width = 6, height =5)
 print(p1)
 dev.off()
 
