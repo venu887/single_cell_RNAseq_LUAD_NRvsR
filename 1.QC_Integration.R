@@ -45,18 +45,6 @@ LC221_NR<- OX_60919_LC221_seurat
 LC221_NR@meta.data$sample<-"LC221_NR"
 LC221_NR@meta.data$sample_type<-"Non_Rec"
 
-rm(cts)
-ls()
-# List of sample names to remove UNNECESSORY ONCE ASSIGN  
-samples_to_remove <- c("OX_60912_LC38_seurat", "OX_60913_LC52_seurat", "OX_60914_LC57_seurat",
-                       "OX_60915_LC63_seurat", "OX_60916_LC71_seurat", "OX_60917_LC104_seurat",
-                       "OX_60918_LC115_seurat", "OX_60919_LC221_seurat")
-for (sample_name in samples_to_remove) {
-  if (exists(sample_name)) {
-    rm(list = sample_name)
-  }
-}
-
 #@@@@@@@@@@@@@@@@@@@      QUALUTY CONTROL IN EACH SAMPLE AND MERGING 
 LC38_NR[["percent.mt"]] <- PercentageFeatureSet(LC38_NR, pattern = "^MT-")
 LC52_R[["percent.mt"]] <- PercentageFeatureSet(LC52_R, pattern = "^MT-")
@@ -67,17 +55,7 @@ LC104_R[["percent.mt"]] <- PercentageFeatureSet(LC104_R, pattern = "^MT-")
 LC115_NR[["percent.mt"]] <- PercentageFeatureSet(LC115_NR, pattern = "^MT-")
 LC221_NR[["percent.mt"]] <- PercentageFeatureSet(LC221_NR, pattern = "^MT-")
 
-# # Because of the sample LC57_R sample has less number of cells, excluded from further analysis
-# # Cells with few reads are likely low-quality cells or empty droplets. Cells with an abnormally high number of reads might be doublets or multiplets. 
-VlnPlot(LC38_NR, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
-VlnPlot(LC52_R, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
-VlnPlot(LC63_NR, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
-VlnPlot(LC71_R, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
-VlnPlot(LC104_R, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
-VlnPlot(LC115_NR, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
-VlnPlot(LC221_NR, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
-
-## Filtered out "bad" cells # https://bioinformatics.ccr.cancer.gov/docs/getting-started-with-scrna-seq/Seurat_QC_to_Clustering/#:~:text=%2C%20percent%20ribosomal).-,QC%20metrics%20are%20stored%20as%20metadata,mapped%20to%20the%20mitochondrial%20genome.&text=This%20entire%20workflow%20is%20exploratory,thresholds%20after%20performing%20downstream%20steps.
+## Filtered out "bad" cells 
 LC38_NR <- subset(LC38_NR, subset = nFeature_RNA > 300 & nFeature_RNA < 6000 & nCount_RNA >1000 & percent.mt < 20)
 LC52_R <- subset(LC52_R, subset = nFeature_RNA > 300 & nFeature_RNA < 6000 & nCount_RNA >1000 & percent.mt < 20)
 LC57_R <- subset(LC57_R, subset = nFeature_RNA > 300 & nFeature_RNA < 6000 & nCount_RNA >1000 & percent.mt < 20)
