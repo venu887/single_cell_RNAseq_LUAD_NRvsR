@@ -7,11 +7,8 @@ library(dplyr)
 #@@@@@@@@@@@@@@@@@@@@@
 # STEP-1 QUALUTY CONTROL IN EACH SAMPLE AND MERGING AND DUPLICATE REMOVAL 
 #@@@@@@@@@@@@@@@@@@@@@
-#  IMPORT DATA
-rm(list = ls())
 set.seed(1234)
-base_path <- "/mount/ictr1/chenglab/venu/scRNAseq_lung/cellranger_scran/"
-
+base_path <- "/cellranger_scran/"
 sample_dirs <- c("OX_60912_LC38", "OX_60913_LC52", "OX_60915_LC63",  "OX_60914_LC57",
                  "OX_60916_LC71", "OX_60917_LC104", "OX_60918_LC115", "OX_60919_LC221")
 
@@ -22,44 +19,34 @@ for (sample_dir in sample_dirs) {
   assign(seurat_obj_name, CreateSeuratObject(counts = cts))
 }
 
-
+# Provide proper name and sample names and sample_type for better downstream analysis 
 LC38_NR<- OX_60912_LC38_seurat
 LC38_NR@meta.data$sample<-"LC38_NR"
 LC38_NR@meta.data$sample_type<-"Non_Rec"
-
 LC52_R<- OX_60913_LC52_seurat
 LC52_R@meta.data$sample<- "LC52_R"
 LC52_R@meta.data$sample_type<-"Rec"
-
 LC57_R<- OX_60914_LC57_seurat
 LC57_R@meta.data$sample<-"LC57_R"
 LC57_R@meta.data$sample_type<-"Rec"
-
 LC63_NR<- OX_60915_LC63_seurat
 LC63_NR@meta.data$sample<-"LC63_NR"
 LC63_NR@meta.data$sample_type<-"Non_Rec"
-
 LC71_R<- OX_60916_LC71_seurat
 LC71_R@meta.data$sample<- "LC71_R"
 LC71_R@meta.data$sample_type<-"Rec"
-
-
 LC104_R<- OX_60917_LC104_seurat
 LC104_R@meta.data$sample<-"LC104_R"
 LC104_R@meta.data$sample_type<-"Rec"
-
 LC115_NR<- OX_60918_LC115_seurat
 LC115_NR@meta.data$sample<-"LC115_NR"
 LC115_NR@meta.data$sample_type<-"Non_Rec"
-
-
 LC221_NR<- OX_60919_LC221_seurat
 LC221_NR@meta.data$sample<-"LC221_NR"
 LC221_NR@meta.data$sample_type<-"Non_Rec"
 
 rm(cts)
 ls()
-
 # List of sample names to remove UNNECESSORY ONCE ASSIGN  
 samples_to_remove <- c("OX_60912_LC38_seurat", "OX_60913_LC52_seurat", "OX_60914_LC57_seurat",
                        "OX_60915_LC63_seurat", "OX_60916_LC71_seurat", "OX_60917_LC104_seurat",
@@ -79,15 +66,7 @@ LC71_R[["percent.mt"]] <- PercentageFeatureSet(LC71_R, pattern = "^MT-")
 LC104_R[["percent.mt"]] <- PercentageFeatureSet(LC104_R, pattern = "^MT-")
 LC115_NR[["percent.mt"]] <- PercentageFeatureSet(LC115_NR, pattern = "^MT-")
 LC221_NR[["percent.mt"]] <- PercentageFeatureSet(LC221_NR, pattern = "^MT-")
-LC104_R 
-LC115_NR             
-LC221_NR             
-LC38_NR               
-LC52_R                
-LC57_R               
-LC63_NR               
-LC71_R 
-# 
+
 # # Because of the sample LC57_R sample has less number of cells, excluded from further analysis
 # # Cells with few reads are likely low-quality cells or empty droplets. Cells with an abnormally high number of reads might be doublets or multiplets. 
 VlnPlot(LC38_NR, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
@@ -114,13 +93,8 @@ merged_nsclc<- merge(x=LC38_NR, y=c(LC63_NR, LC115_NR, LC221_NR, LC52_R, LC104_R
 
 
 #@@@@@@@@@@@@@@@   DUPLICATE REMOVAL 
-# PLOT
-# RidgePlot(merged_nsclc, features=c("nFeature_RNA","nCount_RNA", "percent.mt"), log=T, ncol = 2)
-merged_nsclc
 merged_nsclc$orig.ident<-"nsclc_project"
 merged_nsclc[["RNA"]] <- JoinLayers(merged_nsclc[["RNA"]])
-merged_nsclc
-
 merged_nsclc <- NormalizeData(object = merged_nsclc)
 merged_nsclc <- FindVariableFeatures(object = merged_nsclc)
 merged_nsclc <- ScaleData(object = merged_nsclc)
@@ -138,11 +112,9 @@ bcmvn_nsclc <- find.pK(sweep.stats_nsclc)
 ggplot(bcmvn_nsclc, aes(pK, BCmetric, group = 1)) + # Maximum BCmetric values is the optimum pK values 
   geom_point() +
   geom_line()
-
 pK <- bcmvn_nsclc %>%
   dplyr::filter(BCmetric == max(BCmetric)) %>%
   dplyr::select(pK)
-
 # select the pK that corresponds to max bcmvn to optimize doublet detection
 pK <- as.numeric(as.character(pK[[1]]))
 ## Homotypic Doublet Proportion Estimate 
@@ -157,38 +129,13 @@ merged_nsclc <- doubletFinder(merged_nsclc,
                                       pK = pK, 
                                       nExp = nExp_poi.adj,
                                       reuse.pANN = FALSE, sct = F)
-
-
-View(merged_nsclc@meta.data)
-names(merged_nsclc@meta.data)
-# visualize doublets and always changed last column name "DF.classifications_0.25_0.02_44" 
-DimPlot(merged_nsclc, reduction = 'umap', group.by = "DF.classifications_0.25_0.05_2503")
-DimPlot(merged_nsclc, reduction = 'umap', split.by = "DF.classifications_0.25_0.05_2503")
-# number of singlets and doublets
-table(merged_nsclc@meta.data$DF.classifications_0.25_0.05_2503)
 merged_nsclc<-subset(merged_nsclc, subset = DF.classifications_0.25_0.05_2503 =="Singlet")
 View(merged_nsclc@meta.data)
 
-fout1 <- c("/mount/ictr1/chenglab/venu/scRNAseq_lung/cellranger_scran/NSCLC_output/data1_merged_singlet.rds")
+fout1 <- c("filtered_data.rds")
 saveRDS(merged_nsclc,file=fout1)
 
 merged_nsclc<-readRDS(fout1)
-# PC selection for integration
-ElbowPlot(merged_nsclc)
-# pca_variance <- merged_nsclc[["pca"]]@stdev^2  # Squared standard deviations are the variances
-# pca_variance_percent <- pca_variance / sum(pca_variance) * 100  # Percent variance explained by each PC
-# cumulative_variance <- cumsum(pca_variance_percent)  # Cumulative variance explained
-# 
-# # Print variance explained by each PC
-# data.frame(PC = 1:length(pca_variance_percent), 
-#            Variance_Explained = pca_variance_percent, 
-#            Cumulative_Variance = cumulative_variance)
-#Based on your cumulative variance, I would like to use 20 PCs, which explains 84.54% of the variance. This is typically a good cutoff point, by capturing most of the biological variation without adding too many noisy components.
-# Alternatively, to keep even more variance, can increase to 25 PCs (explaining 88.39% of the variance) or even 30 PCs (explaining 91.28%), but be cautious not to include too many components that could lead to overfitting or noisy analysis.
-
-
-
- # PCs 30 and 20 makes perfect 
 #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ INTEGRATE DATA FOR BATCH EFFECT USING CCA METHOD 
 sample_list <- SplitObject(merged_nsclc, split.by = "sample")
 sample_list <- lapply(sample_list, function(obj) {
@@ -198,9 +145,9 @@ sample_list <- lapply(sample_list, function(obj) {
   return(obj)
 })
 
-anchors <- FindIntegrationAnchors(object.list = sample_list, dims = 1:100) # 30 good
+anchors <- FindIntegrationAnchors(object.list = sample_list, dims = 1:100) 
 integrated_data <- IntegrateData(anchorset = anchors, dims = 1:100)
 integrated_data
 data<-integrated_data
-fout2 <- c("/mount/ictr1/chenglab/venu/scRNAseq_lung/cellranger_scran/NSCLC_output/data1_integrated_ndim100.rds")
+fout2 <- c("integrated_data.rds")
 saveRDS(integrated_data,file=fout2)
