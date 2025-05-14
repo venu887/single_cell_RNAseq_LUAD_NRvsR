@@ -40,7 +40,7 @@ cd45pos
 write.table(allClust_mks, c("NSCLC_output/cd45pos_nsclc_allClust.txt"),
             quote = F, row.names = F)
 
-#@@@@@@@@@@@ Supplementary Figure 2A Raw UMAP @@@@@@@@@@@ 
+#@@@@@@@@@@@ Supplementary Figure 2A Raw UMAP @@@@@@@@@@@@@@@@@@@@@@@@@@
 Imm_plot_1<-DimPlot(cd45pos,  reduction = "umap", label = T)
 print(Imm_plot_1)
 # Save the figure
@@ -160,7 +160,7 @@ cd45pos@meta.data$Cell_type1 <- paste0( cd45pos@meta.data$Cell_type,"_","C",cd45
 file=c("cd45pos_nsclc_Immune_cells.rds")
 saveRDS(cd45pos,file) # Save the data in case if you lost
 
-#@@@@@@@@@@@@@@@ Plot-2C @@@@@@@@@@@@@@@@@@@@@@
+#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ Figure 2C @@@@@@@@@@@@@@@@@@@@@@
 p2<-DimPlot(cd45pos, reduction = "umap", group.by = 'Cell_type1', label = TRUE, label.size = 6, repel = T) 
 p2
 # Save the figure 
@@ -194,7 +194,7 @@ dot_data <- DotPlot(cd45pos, features = valid_markers, group.by = 'Cell_type1')
 plot1<-dot_data+RotatedAxis()+ scale_size(range = c(1,9))
 #save the plot.
 
-#@@@@@@@@@@@@@@@ Plot-2D @@@@@@@@@@@@@@@@@@@@@@
+#@@@@@@@@@@@@@@@ Figure 2D @@@@@@@@@@@@@@@@@@@@@@
 all_markers <- unique(unlist(markers))
 markers_df <- stack(markers)
 colnames(markers_df) <- c("Symbol", "CellType")
