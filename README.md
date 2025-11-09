@@ -4,6 +4,14 @@ This section outlines the preprocessing workflow for generating single-cell RNA 
 
 ![Schematic diagram](https://github.com/venu887/single_cell_RNAseq_LUAD_NRvsR/blob/925795b5061aa1254b417ef1ee8a5178c99c57ad/Fugure_1.png)
 
+# B. Data and Methods Information
+The details of single-cell library preparation, sequencing, and processing, bioinformatic analysis, as well as bulk RNA-seq library preparation, sequencing, and data analysis are provided in the Supplementary Methods document:
+📄 Supplementary_Methods.docx
+scRNA-seq and bulk RNA-seq data generated in this study (BCMLC cohort) were deposited in the Gene Expression Omnibus (GEO) under accession numbers:
+scRNA-seq: GSE300685
+bulk RNA-seq: GSE283245
+The BCMLC dataset is publicly available and includes 8 single-cell RNA-seq samples and 198 bulk RNA-seq samples.
+For external validation, the Okayama NSCLC dataset (GSE31210) was also analyzed. This cohort consists of publicly available bulk RNA-seq data with associated clinical information, used to validate cell-type–specific expression signatures and their prognostic value.
 
 # 1.QC_Integration.R
 This R script provides a comprehensive pipeline for preprocessing and integrating single-cell RNA sequencing (scRNA-seq) data from multiple non-small cell lung cancer (NSCLC) samples. It begins by importing CellRanger output matrices for each sample and creating individual Seurat objects, followed by adding sample-specific metadata to distinguish between recurrent (Rec) and non-recurrent (Non_Rec) cases. Each sample undergoes a thorough quality control process that includes calculating the percentage of mitochondrial gene expression and visualizing key QC metrics such as gene counts and total RNA counts. Low-quality cells and potential empty droplets are filtered out based on defined thresholds to ensure high data integrity. After QC, all high-quality Seurat objects are merged into a single dataset for downstream analysis. The pipeline performs normalization, variable feature selection, scaling, principal component analysis (PCA), clustering, and UMAP visualization to explore cellular heterogeneity. To eliminate artificial cell multiplets, the script implements DoubletFinder, identifying and removing doublets based on optimized pK parameters determined from BCmetric plots. Following doublet removal, the clean dataset is saved and further processed for batch effect correction using Seurat’s Canonical Correlation Analysis (CCA)-based integration method. Each sample is normalized independently, and integration anchors are identified to generate a harmonized, batch-corrected dataset suitable for downstream clustering, trajectory, or differential expression analysis. The final outputs include RDS files of both the merged singlet dataset and the fully integrated dataset, providing a robust foundation for high-resolution cellular and molecular characterization of NSCLC samples.
